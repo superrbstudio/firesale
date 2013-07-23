@@ -635,7 +635,28 @@ class cart extends Public_Controller
                 $skip_checkout = (bool)$this->gateways->setting($gateway, 'skip_checkout');
 
                 // Run payment
-                $params = $this->cart_m->build_transaction($gateway, $order, $skip_checkout ? $session_data : $posted_data);
+                $params = array_merge(array(
+                    'notify_url' => site_url($this->pyrocache->model('routes_m', 'build_url', array('cart'), $this->firesale->cache_time) . '/callback/' . $gateway . '/' . $order['id']),
+                    'return_url' => site_url($this->pyrocache->model('routes_m', 'build_url', array('cart'), $this->firesale->cache_time) . '/success' . $gateway),
+                    'cancel_url' => site_url($this->pyrocache->model('routes_m', 'build_url', array('cart'), $this->firesale->cache_time) . '/cancel')
+                ), $posted_data ? $posted_data : array(), array(
+                    'currency_code'  => $this->fs_cart->currency()->cur_code,
+                    'amount'         => $this->fs_cart->total() + $order['shipping']['price'],
+                    'order_id'       => $this->session->userdata('order_id'),
+                    'transaction_id' => $this->session->userdata('order_id'),
+                    'reference'      => 'Order #' . $this->session->userdata('order_id'),
+                    'description'    => 'Order #' . $this->session->userdata('order_id'),
+                    'first_name'     => $order['bill_to']['firstname'],
+                    'last_name'      => $order['bill_to']['lastname'],
+                    'address1'       => $order['bill_to']['address1'],
+                    'address2'       => $order['bill_to']['address2'],
+                    'city'           => $order['bill_to']['city'],
+                    'region'         => $order['bill_to']['county'],
+                    'country'        => $order['bill_to']['country']['code'],
+                    'postcode'       => $order['bill_to']['postcode'],
+                    'phone'          => $order['bill_to']['phone'],
+                    'email'          => $order['bill_to']['email'],
+                ));
 
                 $process = $this->merchant->purchase($params);
 
@@ -873,6 +894,7 @@ class cart extends Public_Controller
 
                 $this->process_transaction($gateway, $order, $response);
             }
+<<<<<<< HEAD:firesale/controllers/front/cart.php
 
             $this->fs_cart->destroy();
 
@@ -885,6 +907,23 @@ class cart extends Public_Controller
                            ->set_breadcrumb(lang('firesale:payment:title'), uri('cart').'/payment')
                            ->set_breadcrumb(lang('firesale:payment:title_success'))
                            ->build('payment_complete', $order);
+=======
+            else {
+                $this->fs_cart->destroy();
+    
+                // Minimal layout
+                if ( $this->settings->get('firesale_basic_checkout') == '1' ) {
+                    $this->template->set_layout('minimal.html');
+                }
+    
+                $this->template->title(lang('firesale:payment:title_success'))
+                               ->set_breadcrumb(lang('firesale:cart:title'), $this->pyrocache->model('routes_m', 'build_url', array('cart'), $this->firesale->cache_time))
+                               ->set_breadcrumb(lang('firesale:checkout:title'), $this->pyrocache->model('routes_m', 'build_url', array('cart'), $this->firesale->cache_time).'/checkout')
+                               ->set_breadcrumb(lang('firesale:payment:title'), $this->pyrocache->model('routes_m', 'build_url', array('cart'), $this->firesale->cache_time).'/payment')
+                               ->set_breadcrumb(lang('firesale:payment:title_success'))
+                               ->build('payment_complete', $order);
+            }
+>>>>>>> upstream/1.2/master:firesale/controllers/front_cart.php
         } else {
             show_404();
         }
